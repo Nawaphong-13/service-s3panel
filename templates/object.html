@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block nav %}
+{% include 'nav.html' %}
+{% endblock %}
+{% block main %}
+<div class="container d-flex justify-content-center align-items-center">
+  <div class="card mx-auto" style="max-width: 400px;">
+    <div class="card-body text-center">
+      <h5 class="card-title">Object Name: {{ object_name }}</h5>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item"><strong>Bucket:</strong> {{ bucket_name }}</li>
+        <li class="list-group-item"><strong>Size:</strong> {{ size }} </li>
+        <li class="list-group-item"><strong>Content Type:</strong> {{ content_type }} </li>
+        <li class="list-group-item"><strong>Last Modified:</strong> {{ lastModified }}</li>
+        <li class="list-group-item"><strong>Owner:</strong> {{ owner }} </li>
+        <li class="list-group-item"><strong>Permissions:</strong> {{ permission }}</li>
+        <li class="list-group-item"><strong>Object URL:</strong> {{ url2 }}</li>
+      </ul>
+      <button type="button" class="btn btn-primary mt-3" onclick="copyToClipboard('{{url2}}')">Copy Object
+        Url</button>
+      <a href="{{ url_for('get_bucket',bucket_name = bucket_name) +  back_prefix }}"
+        class="btn btn-secondary mt-3">Back</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block script %}
+<!-- Optional JavaScript; choose one of the two! -->
+<script>
+  function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function () {
+      console.log('Copied to clipboard: ' + text);
+    }, function (err) {
+      console.error('Failed to copy text: ' + err);
+    });
+  }
+</script>
+{% endblock %}

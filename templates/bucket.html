@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block nav %}
+{% include 'nav.html' %}
+{% endblock %}
+
+{% block main %}
+<ul class="nav nav-pills mt-3">
+  <li class="nav-item">
+    <a class="nav-link disabled" tabindex="-1" aria-disabled="true" href="{{ url_for('bucket') }}">Bucket</a>
+  </li>
+</ul>
+
+<h1>My Buckets</h1>
+<div id="alert">
+  {% if message and alert %}
+  <div class="alert alert-{{ alert }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endif %}
+</div>
+
+
+<table id="buckets-table" class="table">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Creation Date</th>
+    </tr>
+  <tbody>
+    {% for bucket in buckets %}
+    <tr>
+      <td><a href="/bucket/{{ bucket.Name }}">{{ bucket.Name }}</a></td>
+      <td>{{ bucket.CreationDate }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+  </tbody>
+</table>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  $(document).ready(function () {
+    $('#buckets-table').DataTable({
+      "order": [[1, 'asc']],
+      "pageLength": 25
+    });
+
+  });
+
+  setTimeout(function () {
+    document.getElementById('alert').remove();
+  }, 5000);
+</script>
+{% endblock %}

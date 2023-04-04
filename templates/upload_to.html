@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block nav %}
+{% include 'nav.html' %}
+{% endblock %}
+
+{% block main %}
+
+
+
+<!-- Button to trigger modal -->
+<button id="back-button" type="button" class="btn btn-warning mb-3">Back</button>
+
+
+
+<table id="upload-table" class="table table-striped">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Folder</th>
+            <th>Type</th>
+            <th>Size</th>
+            <th>Status</th>
+            <th>Delete</th>
+            <th>Copy url</th>
+
+
+        </tr>
+    </thead>
+    <tbody>
+        {% for object in objects %}
+        <tr>
+            {% if object.Status %}
+            <td><a href="/object/{{bucket}}?prefix={{ object.Key }}&from=upload">{{ object.Key.split('/')[-1] }}</a>
+            </td>
+            <td>{{ object.Folder }} </td>
+            <td>{{ object.ContentType }}</td>
+            <td>{{ object.ContentLength }}</td>
+            <td class="text-center"><small class="text-success">Succeeded</small></td>
+            <td><button class="btn btn-danger btn-sm"
+                    onclick="deleteObject('{{bucket}}','{{ object.Key }}')">Delete</button></td>
+            <td><button type="button" class="btn btn-outline-primary btn-sm"
+                    onclick="copyToClipboard('{{object.Url2}}')">Copy</button></td>
+            {% else %}
+            <td>{{ object.Key.split('/')[-1] }}</td>
+            <td>{{ object.Folder }} </td>
+            <td>{{ object.ContentType }}</td>
+            <td>{{ object.ContentLength }}</td>
+            <td class="text-center"><small class="text-danger">Failed</small></td>
+            <td></td>
+            <td></td>
+            {% endif %}
+
+
+
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
+
+{% block script %}
+<script>
+    $(document).ready(function () {
+        $('#upload-table').DataTable({
+            "order": [[1, 'asc']],
+            "pageLength": 25
+        });
+
+    });
+
+    function deleteObject(bucket, key) {
+        // Prompt the user to confirm the deletion
+        console.log(`/bucket/${bucket}/delete?prefix=${key}`)
+        if (confirm(`Are you sure you want to delete the object '${key}'?`)) {
+            // Send an AJAX request to delete the object
+            $.ajax({
+                url: `/bucket/${bucket}/delete/?prefix=${key}`,
+                type: 'DELETE',
+                success: function (response) {
+                    // // If the object was deleted successfully, reload the page to update the table
+                    // location.reload();
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const prefix = urlParams.get('prefix');
+                    const valuesString = atob(urlParams.get('values'));
+                    const values = JSON.parse(valuesString);
+                    const indexToRemove = values.keys.indexOf(key);
+                    values.keys.splice(indexToRemove, 1);
+                    values.status.splice(indexToRemove, 1);
+
+
+                    const encodedValues = btoa(JSON.stringify(values))
+
+                    window.location.href = `/upload/${bucket}?prefix=${prefix}&values=${encodedValues}`;
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+        }
+    };
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function () {
+            console.log('Copied to clipboard: ' + text);
+        }, function (err) {
+            console.error('Failed to copy text: ' + err);
+        });
+    };
+
+    const backButton = document.querySelector('#back-button');
+    backButton.addEventListener('click', () => {
+        const bucket = '{{ bucket }}';
+        const prefix = '{{ prefix }}';
+        const url = `/bucket/${bucket}?prefix=${prefix}`;
+        window.location.href = url;
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,531 @@
+{% extends 'base.html' %}
+{% block nav %}
+{% include 'nav.html' %}
+{% endblock %}
+
+{% block main %}
+
+<style>
+    .magin-nav{
+        margin-right: -20px;
+    }
+</style>
+
+<ul id="navBar" class="nav nav-pills mb-3">
+    <li class="nav-item">
+        <a class="nav-link magin-nav" href="{{ url_for('bucket') }}">Bucket</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link disabled magin-nav">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+              </svg>
+        </a>
+    </li>
+  
+    {% if bucket and sub_dirs%}
+    <li class="nav-item">
+        <a class="nav-link magin-nav" href="{{ url_for('get_bucket',bucket_name = bucket)}}">{{bucket}}</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link disabled magin-nav">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+              </svg>
+        </a>
+    </li>
+    {% else %}
+    <li class="nav-item">
+        <a class="nav-link disabled magin-nav" href="{{ url_for('get_bucket',bucket_name = bucket)}}">{{bucket}}</a>
+    </li>
+    {% endif %}
+    {% if sub_dirs %}
+    {% for sub_dir in sub_dirs %}
+    {% if sub_dir.label %}
+    {% if sub_dir.disabled %}
+    <li class="nav-item">
+        <a class="nav-link disabled magin-nav"
+            href="{{ url_for('get_bucket',bucket_name = bucket) + '?prefix=' + sub_dir.value }}">{{sub_dir.label}}
+        </a>
+    </li>
+    {% else %}
+    <li class="nav-item">
+        <a class="nav-link magin-nav"
+            href="{{ url_for('get_bucket',bucket_name = bucket) + '?prefix=' + sub_dir.value }}">{{sub_dir.label}}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link disabled magin-nav">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+              </svg>
+        </a>
+    </li>
+    {% endif %}
+    
+    
+    {% endif %}
+    {% endfor%}
+    {% endif %}
+</ul>
+
+<div>
+    <form id="search-prefix-form" class="d-flex">
+        <input id="search-prefix" class="form-control me-2" type="search" placeholder="Find objects by prefix"
+            aria-label="Search">
+            
+        <button class="btn btn-outline-primary" type="submit">Search</button>
+    </form>
+    <div id="passwordHelpBlock" class="form-text  mb-3">
+        Ex. upload/content/ or upload/content/beauty01/body
+      </div>
+</div>
+
+<!-- Button to trigger modal -->
+<button type="button" class="btn btn-warning mb-3" data-bs-toggle="modal" data-bs-target="#createFolderModal">Create
+    Folder</button>
+
+<button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#uploadModal">Upload</button>
+
+<button type="button" class="btn btn-info mb-3" data-bs-toggle="modal"
+    data-bs-target="#permissions-modal">Permissions</button>
+
+
+<!-- Modal Create Folder -->
+<div class="modal fade" id="createFolderModal" tabindex="-1" aria-labelledby="createFolderModalLabel"
+    aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createFolderModalLabel">Create Folder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div id="alert-createFolder" class="alert" role="alert" style="display:none;"></div>
+            <form id="createFolderForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="folderInput" class="form-label">Folder Name</label>
+                        <div class="form-text ">Example: name-1, name_1</div>
+                        <input type="text" class="form-control" id="folderInput" name="prefix"
+                            oninput="this.value=this.value.replace(/[^0-9a-za-z_\-s]/g,'');" required>
+
+                        <div class="form-text text-danger">Note: Folder name cannot contain whitespace.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Create</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="close-create-folder-btn"
+                        id="close-upload-btn">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal upload -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalLabel">Choose File(s)</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div id="alert-upload" class="alert" role="alert" style="display:none;"></div>
+            <div id="alert-container"></div>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="fileInput" class="form-label">Choose File(s)</label>
+                        <input type="file" class="form-control" id="fileInput" name="files" multiple required>
+
+                        <!-- <input type="file" class="form-control" id="fileInput" name="file" required> -->
+                        <div class="form-text text-danger">Note: Please upload only files in the following formats: JPG,
+                            JPEG, PNG, GIF, and PDF. Filename cannot contain whitespace.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button id="upload-button" type="submit" class="btn btn-primary">Upload</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                        id="close-upload-btn">Close</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal permission-->
+<div class="modal fade" id="permissions-modal" tabindex="-1" aria-labelledby="permissions-modal-label"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="permissions-modal-label">Bucket Permissions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="bucket-permissions-form">
+                    <div class="mb-3">
+                        <div id="alert-message" class="alert" role="alert" style="display:none;"></div>
+
+
+                        <label for="permissions-json" class="form-label">Permissions JSON</label>
+                        <textarea class="form-control" id="permissions-json" name="permissions_json" rows="20"
+                            readonly></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-warning" id="edit-permissions-btn">Edit</button>
+                        <button type="button" class="btn btn-secondary" id="close-permissions-btn"
+                            data-bs-dismiss="modal">Close</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+<table id="in-buckets-table" class="table table-striped">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Last modified</th>
+            <th>Size</th>
+            <th>Storage class</th>
+            <th>Delete</th>
+            <th>Copy url</th>
+
+
+        </tr>
+    </thead>
+    <tbody>
+        {% for prefix in prefixs %}
+        <tr>
+            <td><a href="/bucket/{{bucket}}?prefix={{ prefix.Prefix }}">{{ prefix.Prefix.split('/')[-2] +
+                    '/'}}</a></td>
+            <td> {{prefix.Type}} </td>
+            <td> - </td>
+            <td> - </td>
+            <td> - </td>
+            <td> - </td>
+            <td> - </td>
+        </tr>
+        {% endfor %}
+        {% for object in objects %}
+        <tr>
+            <td><a href="/object/{{bucket}}?prefix={{ object.Key }}&from=bucket">{{ object.Key.split('/')[-1] }}</a>
+            </td>
+            <td>{{ object.Type }} </td>
+            <td>{{ object.LastModified }}</td>
+            <td>{{ object.Size }}</td>
+            <td>{{ object.StorageClass }}</td>
+            <td><button class="btn btn-danger btn-sm"
+                    onclick="deleteObject('{{bucket}}','{{ object.Key }}')">Delete</button></td>
+            <td><button type="button" class="btn btn-outline-primary btn-sm"
+                    onclick="copyToClipboard('{{object.Url2}}')">Copy</button></td>
+
+
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
+
+{% block script %}
+<script>
+    const bucket = '{{bucket}}'; // replace with your bucket name
+    const prefix = '{{prefix}}'; // replace with your bucket name
+
+    $(document).ready(function () {
+        $('#in-buckets-table').DataTable({
+            "order": [[1, 'asc']],
+            "pageLength": 25
+        })
+
+        $('#search-prefix-form').on('submit', function (event) {
+            event.preventDefault();
+            const inputValue = $('#search-prefix').val();
+            const url = `/bucket/${bucket}?prefix=${inputValue}`;
+            window.location.href = url;
+        });
+
+
+        $('#uploadForm').on('submit', function (event) {
+            event.preventDefault();
+
+            const fileInput = document.getElementById('fileInput');
+            const files = fileInput.files;
+            const whitespaceRegex = /\s/;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const filename = file.name;
+
+                if (whitespaceRegex.test(filename)) {
+                    alert("Filename cannot contain whitespace. Please select a file with a valid filename.");
+                    fileInput.value = "";
+                    event.preventDefault();
+                    return false;
+                }
+            }
+
+            // Get the current page URL
+            const currentUrl = window.location.href;
+            var form = $(this);
+            var formData = new FormData(form[0]);
+
+            const url = `/bucket/${bucket}/upload?prefix=${prefix}`
+
+            document.getElementById("upload-button").style.display = 'none';
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    if (response.success) {
+                        $('#alert-upload').removeClass('alert-info').addClass('alert-success').text(response.message).fadeIn();
+
+                        for (const result of response.results) {
+                            const message = result.message;
+                            const isSuccess = result.success;
+                            const alertClass = isSuccess ? 'alert-success' : 'alert-danger';
+                            const alertText = isSuccess ? message : `Error: ${message}`;
+                            const alertElement = $('<div>').addClass('alert mt-3').addClass(alertClass).text(alertText);
+                            $('#alert-container').append(alertElement);
+                        }
+
+                        const payload = {
+                            "keys": response.object_keys,
+                            "status": response.status
+                        };
+                        const encodedValues = btoa(JSON.stringify(payload));
+                        // Hide the success message after 3 seconds
+                        setTimeout(function () {
+                            $('#alert-upload').fadeOut();
+                            $('#alert-container').fadeOut();
+                            // location.reload();
+
+                            // // Set the new URL and reload the page
+                            // window.location.href = currentUrl;
+                            window.location.href = `/upload/${bucket}?prefix=${prefix}&values=${encodedValues}`;
+
+                        }, 3000);
+
+
+                    } else {
+
+                        $('#alert-upload').removeClass('alert-success').addClass('alert-danger').text(response.message).fadeIn();
+                        // Hide the success message after 3 seconds
+                        setTimeout(function () {
+                            $('#alert-upload').fadeOut();
+                        }, 5000);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error(error);
+                    // Handle error response
+                }
+            });
+            $('#alert-upload').removeClass('alert-danger').addClass('alert-info').text('wait ...').fadeIn();
+        });
+
+
+        $('#createFolderForm').on('submit', async function (event) {
+            // Get the current page URL
+            let currentUrl = window.location.href;
+            event.preventDefault(); // prevent the default form submission behavior
+            // get the form data
+            const formData = new FormData(this);
+            // delete the 'prefix' key from the FormData object
+            formData.delete('prefix');
+            const folderName = $('#folderInput').val().trim(); // get the folder prefix from the input field
+
+            const pattern = /^[a-zA-Z0-9]+([_-][a-zA-Z0-9]+)*$/;
+
+            if (folderName.trim().split(' ').length > 1 || !pattern.test(folderName)) {
+                alert("Input value contains other characters besides letters, numbers, or either hyphens or underscores, but not both.");
+                return false;
+            }
+
+
+            // const folderName = $('#folderInput').val(); // get the folder prefix from the input field
+            let key = ''
+            let nextUrl = ''
+            if (prefix) {
+                key = `${prefix}${folderName}/`
+                nextUrl = currentUrl + folderName + '/'
+            } else {
+                key = `${folderName}/`
+                nextUrl = currentUrl + '?prefix=' + folderName + '/'
+            }
+            const objectKey = `${key}`
+            // console.log('objectKey >>>> ', objectKey)
+            // console.log('nextUrl >>>> ', nextUrl)
+
+            // send the AJAX request to upload the file
+            $.ajax({
+                url: `/bucket/${bucket}/create-folder?prefix=${key}`,
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (response) {
+                    if (response.success) {
+                        // // Set the new URL and reload the page
+                        $('#alert-createFolder').removeClass('alert-info').addClass('alert-success').text(response.message).fadeIn();
+                        // Hide the success message after 3 seconds
+                        setTimeout(function () {
+                            $('#alert').fadeOut();
+                        }, 3000);
+                        window.location.href = nextUrl;
+                        // location.reload();
+                    } else {
+                        $('#alert-createFolder').removeClass('alert-success').addClass('alert-danger').text(response.message).fadeIn();
+                        // Hide the success message after 3 seconds
+                        setTimeout(function () {
+                            $('#alert').fadeOut();
+                        }, 5000);
+                    }
+                },
+                error: function (error) {
+                    console.log(error)
+                }
+            });
+            $('#alert-createFolder').removeClass('alert-danger').addClass('alert-info').text('wait ...').fadeIn();
+
+            // // hide the modal
+            // $('#uploadModal').modal('hide');
+        });
+
+        $('#permissions-modal').on('show.bs.modal', function (e) {
+            var bucketName = $('#bucket-name').val();
+            $.ajax({
+                type: 'GET',
+                url: '/bucket-policy/{{bucket}}',
+                data: { bucket_name: bucketName },
+                success: function (response) {
+                    var permissionsJson = JSON.stringify(response.bucket_policy, null, 2);
+                    $('#permissions-json').val(permissionsJson);
+                },
+                error: function (xhr, status, error) {
+                    alert('Error getting bucket permissions: ' + error);
+                }
+            });
+        });
+
+        $('#close-permissions-btn').click(function () {
+            $('#edit-permissions-btn').text('Edit');
+            $('#edit-permissions-btn').removeClass('btn-success').addClass('btn-warning');
+            $('#permissions-json').attr('readonly', 'readonly');
+        });
+
+
+
+        $('#close-create-folder-btn').click(function () {
+            $('#folderInput').val(null);
+            $('#fileInput').val(null);
+        });
+
+        $('#close-upload-btn').click(function () {
+            $('#folderInput').val(null);
+            $('#fileInput').val(null);
+        });
+
+        $('#edit-permissions-btn').click(function () {
+            if ($(this).text() === 'Edit') {
+                $(this).text('Save');
+                $(this).removeClass('btn-warning').addClass('btn-success')
+                $('#permissions-json').removeAttr('readonly');
+            } else {
+                $(this).text('Edit');
+                $(this).removeClass('btn-success').addClass('btn-warning')
+                $('#permissions-json').attr('readonly', 'readonly');
+
+                var form_data = $('#bucket-permissions-form').serializeArray();
+                var json_data = {};
+                $(form_data).each(function (index, obj) {
+                    json_data[obj.name] = obj.value;
+                });
+                $.ajax({
+                    type: 'PUT',
+                    url: '/bucket-policy/{{bucket}}',
+                    contentType: 'application/json',
+                    data: JSON.stringify(json_data),
+                    success: function (response) {
+
+                        // Do something with the response here, like displaying a success message
+                        // Show success message
+                        $('#alert-message').removeClass('alert-danger').addClass('alert-success').text('Policy saved successfully.').fadeIn();
+                        // Hide the success message after 3 seconds
+                        setTimeout(function () {
+                            $('#alert-message').fadeOut();
+                        }, 3000);
+                    },
+                    error: function (error) {
+                        console.error('Error:', error);
+                        // Do something with the error here, like displaying an error message
+
+                        $.ajax({
+                            type: 'GET',
+                            url: '/bucket-policy/{{bucket}}',
+                            data: { bucket_name: '{{bucket}}' },
+                            success: function (response) {
+                                var permissionsJson = JSON.stringify(response.bucket_policy, null, 2);
+                                $('#permissions-json').val(permissionsJson);
+                            },
+                            error: function (xhr, status, error) {
+                                alert('Error getting bucket permissions: ' + error);
+                            }
+                        });
+
+                        // Show error message
+                        $('#alert-message').removeClass('alert-success').addClass('alert-danger').text('Failed to save policy.').fadeIn();
+                    }
+                });
+
+            }
+        });
+
+
+
+
+    });
+
+    function deleteObject(bucket, key) {
+        // Prompt the user to confirm the deletion
+        console.log(`/bucket/${bucket}/delete?prefix=${key}`)
+        if (confirm(`Are you sure you want to delete the object '${key}'?`)) {
+            // Send an AJAX request to delete the object
+            $.ajax({
+                url: `/bucket/${bucket}/delete/?prefix=${key}`,
+                type: 'DELETE',
+                success: function (response) {
+                    // If the object was deleted successfully, reload the page to update the table
+                    location.reload();
+                },
+                error: function (error) {
+                    console.log(error);
+                }
+            });
+        }
+    }
+
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function () {
+            console.log('Copied to clipboard: ' + text);
+        }, function (err) {
+            console.error('Failed to copy text: ' + err);
+        });
+    }
+
+
+</script>
+{% endblock %}
