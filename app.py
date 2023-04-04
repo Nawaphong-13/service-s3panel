@@ -696,6 +696,7 @@ def upload_to(bucket_name):
     return render_template('upload_to.html', objects=objects, title='Upload', bucket=bucket_name, prefix='', email=current_user.email)
 
 @app.route('/search/<string:bucket_name>', methods=['POST'])
+@login_required
 def search(bucket_name):
     # # Initialize the s3 resource before using it
     # s3_client = init_s3_client()
